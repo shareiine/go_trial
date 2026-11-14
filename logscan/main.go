@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -55,15 +56,19 @@ func main() {
 	fmt.Println("\nSummary:")
 	fmt.Printf("Total parsed lines: %d\n", total)
 	fmt.Printf("Total unparsed lines: %d\n", unparsedCount)
-	fmt.Println("IP Address Counts:")
+	fmt.Println("Top IP Address Counts:")
+	// arrange the IP addresses by the number of requests
+	ipList := arrangeByIP(ipCount)
 	// loop to count the times each IP address appears in the log file
-	for ip, count := range ipCount {
-		fmt.Printf("%s: %d\n", ip, count)
+	for _, ip := range ipList {
+		fmt.Printf("%s: %d\n", ip, ipCount[ip])
 	}
 	// loop to count the times each status code appears in the log file
-	fmt.Println("Status Code Counts:")
-	for status, count := range statusCount {
-		fmt.Printf("%d: %d\n", status, count)
+	fmt.Println("Top Status Code Counts:")
+	// arrange the status codes by the number of requests
+	statusList := arrangeByStatus(statusCount)
+	for _, status := range statusList {
+		fmt.Printf("%d: %d\n", status, statusCount[status])
 	}
 
 }
@@ -95,4 +100,51 @@ func parseLog(line string) (LogData, error) {
 		Status: status,
 		Path:   strings.Trim(fields[6], `"`),
 	}, nil
+}
+
+// function to arrange the log data by amount of requests per IP address
+// also get the top N IP addresses with the most requests
+func arrangeByIP(ipCount map[string]int) []string {
+	// create a slice to hold the IP addresses
+	ipList := make([]string, 0, len(ipCount))
+	for ip := range ipCount {
+		ipList = append(ipList, ip)
+	}
+
+	// sort the slice by the count of requests per IP address
+	sort.Slice(ipList, func(i, j int) bool {
+		// sort in ascending order of IP addresses, but descending order of counts
+		if ipCount[ipList[i]] == ipCount[ipList[j]] {
+			return ipList[i] < ipList[j]
+		}
+		// sort in descending order of counts
+		return ipCount[ipList[i]] > ipCount[ipList[j]]
+	})
+
+	// take the top N IP addresses with the most requests
+	N := 3
+	if len(ipList) > N {
+		ipList = ipList[:N]
+	}
+	return ipList
+}
+
+// function to arrange the log data by amount of requests per status code
+func arrangeByStatus(statusCount map[int]int) []int {
+	// create a slice to hold the status codes
+	statusList := make([]int, 0, len(statusCount))
+	for status := range statusCount {
+		statusList = append(statusList, status)
+	}
+
+	// sort the slice by the count of requests per status code
+	sort.Slice(statusList, func(i, j int) bool {
+		// sort in ascending order of status codes, but descending order of counts
+		if statusCount[statusList[i]] == statusCount[statusList[j]] {
+			return statusList[i] < statusList[j]
+		}
+		// sort in descending order of counts
+		return statusCount[statusList[i]] > statusCount[statusList[j]]
+	})
+	return statusList
 }
